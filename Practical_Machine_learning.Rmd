@@ -98,3 +98,5 @@ Based on the results above, we decided to use Random Forest for prediction in Te
 predict_T <- predict(modFit_2, FixedTestData, type = "class")
 predict_T
 ```
+
+
