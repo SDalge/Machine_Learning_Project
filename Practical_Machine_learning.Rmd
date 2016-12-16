@@ -1,0 +1,100 @@
+---
+title: "Practical Machine Learning - Course Project"
+author: "Sergio L. B. Dalge"
+date: "December 15, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(rattle)
+library(e1071)
+```
+
+## Summary
+
+In this paper we will try to predict the manner in which the volunteers performed the barbell lift, the correct or the incorrect way. To do so, we are using the Training and Test dataset from the project [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har). In this project 6 participants were asked to perform barbell lift correctly and incorrectly in 5 different ways, using accelerometers on the belt, forearm, arm and dumbell.
+ 
+
+## Getting Data
+
+The data from the project were downloaded from the links below:
+
+Training data [pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+
+Test data [pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)
+
+And loaded in the **TrainDataFull** and **TestDataFull** datasets.
+
+```{r}
+TrainURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+TestURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+TrainDataFull <- read.csv(url(TrainURL), na.strings = c("NA","#DIV/0!",""))
+TestDataFull <- read.csv(url(TestURL), na.strings = c("NA","#DIV/0!",""))
+```
+
+## Data Preparation
+
+In order to use the datasets above the first thing we did was discard variables with more than 50 % of NA.  
+Then splitted Training dataset in two, a **w_Training** dataset and a **w_Validation** dataset to use in our trainings and predictions. 
+We also performed adjustments due to differences on classes in Training and Testing dataset.
+
+```{r}
+set.seed(13579)
+TrainData <- TrainDataFull[, -which(colMeans(is.na(TrainDataFull)) > 0.5)]
+TestData <- TestDataFull[, -which(colMeans(is.na(TrainDataFull)) > 0.5)]
+
+c_Train <- createDataPartition(TrainData$classe, p=0.7, list = FALSE)
+w_Training <- TrainData[c_Train,]
+w_Validation <- TrainData[-c_Train,]
+
+TestData <- TestData[,-length(colnames(TestData))]
+TestData <- TestData[,-1]
+w_Training <- w_Training[,-1]
+
+DTemp <- head(w_Training,1)
+DTemp <- DTemp[,-length(colnames(DTemp))]
+FixedTestData <- rbind(DTemp,TestData)
+FixedTestData <- FixedTestData[-1,]
+```
+
+
+## Prediction with Trees
+
+
+```{r}
+modFit_1 <- rpart(classe ~ .,data = w_Training, method = "class")
+fancyRpartPlot(modFit_1)
+predict_1 <- predict(modFit_1, w_Validation, type = "class")
+ConfMtx_1 <- confusionMatrix(predict_1, w_Validation$classe)
+plot(ConfMtx_1$table, col = ConfMtx_1$byclass, main = paste("Decision Tree ( Accuracy = ", round(ConfMtx_1$overall['Accuracy'],4), " )"))
+```
+  
+As we can see above, using trees algorithm to predict outcome, led us to an accuracy of `r ConfMtx_1$overall['Accuracy']`.
+
+## Prediction with Random Forest
+
+```{r}
+modFit_2 <- randomForest(classe ~ .,data = w_Training)
+predict_2 <- predict(modFit_2, w_Validation, type = "class")
+ConfMtx_2 <- confusionMatrix(predict_2, w_Validation$classe)
+plot(ConfMtx_2$table, col = ConfMtx_2$byclass, main = paste("Random Forest ( Accuracy = ", round(ConfMtx_2$overall['Accuracy'],4), " )"))
+
+```
+
+On the other hand, using random forest algorithm led us to a better accuracy ( `r ConfMtx_2$overall['Accuracy']`)
+
+
+## Prediction on Test DataSet 
+
+Based on the results above, we decided to use Random Forest for prediction in Testing set.
+
+```{r}
+predict_T <- predict(modFit_2, FixedTestData, type = "class")
+predict_T
+```
