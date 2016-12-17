@@ -92,7 +92,7 @@ On the other hand, using random forest algorithm led us to a better accuracy ( `
 
 ## Prediction on Test DataSet 
 
-Based on the results above, we decided to use Random Forest for prediction in Testing set.
+Based on the results above, we decided to use Random Forest for prediction in Test Dataset.
 
 ```{r}
 predict_T <- predict(modFit_2, FixedTestData, type = "class")
